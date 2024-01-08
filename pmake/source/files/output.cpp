@@ -14,9 +14,6 @@ void pmake::create_from_template(std::filesystem::path templatePath, std::string
 {
     if (!std::filesystem::exists(projectName)) { std::filesystem::create_directory(projectName); }
 
-    std::filesystem::path const from { templatePath };
-    std::filesystem::path const to   { projectName };
-
     std::unordered_map<std::string_view, std::string_view> wildcards
     {
         { "!PROJECT!", projectName },
@@ -24,8 +21,11 @@ void pmake::create_from_template(std::filesystem::path templatePath, std::string
         { "!STANDARD!", projectStandard },
     };
 
+    std::filesystem::path const from { templatePath };
+    std::filesystem::path const to   { projectName };
+
     copy_and_rename_files_recursively(projectName, wildcards, from, to);
-    replace_wildcards_recursively(projectName, wildcards);
+    replace_wildcards_recursively(from, wildcards);
 }
 
 void copy_and_rename_files_recursively(std::string_view projectName, std::unordered_map<std::string_view, std::string_view> const& wildcards, std::filesystem::path from, std::filesystem::path to)
