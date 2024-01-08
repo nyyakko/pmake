@@ -8,6 +8,7 @@ using namespace std::literals;
 
 std::string pmake::setup_language(cxxopts::ParseResult const& parsedOptions)
 {
+    // TODO: perhaps the user could provide these?
     std::unordered_map<std::string_view, std::string> const availableLanguages
     {
         { "c++"sv, "CXX"s },
@@ -34,6 +35,7 @@ std::string pmake::setup_language(cxxopts::ParseResult const& parsedOptions)
 
 std::string pmake::setup_language_standard(cxxopts::ParseResult const& parsedOptions, std::string const& projectLanguage)
 {
+    // TODO: perhaps the user could provide these?
     std::unordered_map<std::string_view, std::vector<std::string>> const availableStandards
     {
         { "CXX"sv, { "23"s, "20"s, "17"s, "14"s, "11"s } },
