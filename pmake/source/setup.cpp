@@ -62,7 +62,7 @@ std::string pmake::setup_language_standard(cxxopts::ParseResult const& parsedOpt
 
 std::filesystem::path pmake::setup_template_path(cxxopts::ParseResult const& parsedOptions, std::string const& projectLanguage, std::string const& projectKind)
 {
-    std::filesystem::path path { "templates\\"s + projectLanguage + "\\" + projectKind };
+    std::filesystem::path path { "pmake-templates\\"s + projectLanguage + "\\" + projectKind };
 
     if (parsedOptions.count("static")) { path += "\\static"; }
     else if (parsedOptions.count("dynamic")) { path += "\\dynamic"; }
