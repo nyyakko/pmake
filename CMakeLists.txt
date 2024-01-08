@@ -10,9 +10,9 @@ include(static_analyzers)
 include(toolchain_vcpkg)
 include(remote_clone)
 
-remote_clone("" "pmake-templates" "nyyakko/pmake-templates.git" "origin/master")
-
 require_vcpkg()
+
+remote_clone("" "pmake-templates" "nyyakko/pmake-templates.git" "origin/master")
 
 # set(pmake_LinkerOptions ${pmake_LinkerOptions}
 #   . . .
