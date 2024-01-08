@@ -8,6 +8,9 @@ set(CMAKE_TOOLCHAIN_FILE $ENV{CMAKE_TOOLCHAIN_FILE})
 
 include(static_analyzers)
 include(toolchain_vcpkg)
+include(remote_clone)
+
+remote_clone("" "pmake-templates" "nyyakko/pmake-templates.git" "origin/master")
 
 require_vcpkg()
 
