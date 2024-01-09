@@ -32,9 +32,12 @@ int main(int argumentCount, char const** argumentValues)
         auto const projectKind     = pmake::setup_kind(parsedOptions);
         auto const projectStandard = pmake::setup_language_standard(parsedOptions);
 
-        std::println("project name....: {}", projectName);
-        std::println("project kind....: {}", projectKind);
-        std::println("project language: {} ({})", parsedOptions["language"].as<std::string>(), projectStandard);
+        // stolen from https://github.com/ArthurSonzogni/FTXUI/blob/main/cmake/ftxui_message.cmake
+        std::println("┌─ pmake ─────────────");
+        std::println("│ name....: {}", projectName);
+        std::println("│ kind....: {}", projectKind);
+        std::println("│ language: {} ({})", parsedOptions["language"].as<std::string>(), projectStandard);
+        std::println("└─────────────────────");
 
         pmake::create_from_template(pmake::setup_template_path(parsedOptions), projectName, projectLanguage, projectStandard);
     }
