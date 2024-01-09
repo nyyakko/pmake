@@ -1,33 +1,19 @@
 #include "setup.hpp"
 
 #include <print>
-#include <unordered_map>
-#include <ranges>
+#include <fstream>
+
+#include <nlohmann/json.hpp>
 
 using namespace std::literals;
 
 std::string pmake::setup_language(cxxopts::ParseResult const& parsedOptions)
 {
-    // TODO: perhaps the user could provide these?
-    std::unordered_map<std::string_view, std::string> const availableLanguages
+    auto const language = parsedOptions["language"].as<std::string>();
+
+    if (!std::filesystem::exists("pmake-templates\\" + language))
     {
-        { "c++"sv, "CXX"s },
-        { "c"sv,   "C"s   }
-    };
-
-    auto language = availableLanguages.at(parsedOptions["language"].as<std::string>());
-
-    if (parsedOptions.count("language"))
-    {
-        auto const selectedLanguage = parsedOptions["language"].as<std::string>();
-
-        if (!availableLanguages.contains(std::ranges::to<std::string>(selectedLanguage)))
-        {
-            std::println("The language \"{}\" isn't supported.", selectedLanguage);
-            std::exit(EXIT_FAILURE);
-        }
-
-        language = availableLanguages.at(selectedLanguage);
+        throw std::runtime_error(std::format("The language \"{}\" doesn't have a template setup for it.", language));
     }
 
     return language;
@@ -35,26 +21,12 @@ std::string pmake::setup_language(cxxopts::ParseResult const& parsedOptions)
 
 std::string pmake::setup_kind(cxxopts::ParseResult const& parsedOptions)
 {
-    std::unordered_map<std::string_view, std::vector<std::string>> const availableKinds
-    {
-        { "c++"sv, { "executable"s, "library"s } },
-        { "c"sv,   { "executable"s, "library"s } }
-    };
-
     auto const language = parsedOptions["language"].as<std::string>();
-    auto kind           = availableKinds.at(language).front();
+    auto const kind     = parsedOptions["kind"].as<std::string>();
 
-    if (parsedOptions.count("kind"))
+    if (!std::filesystem::exists("pmake-templates\\" + language + "\\" + kind))
     {
-        auto const selectedKind = parsedOptions["kind"].as<std::string>();
-
-        if (!std::ranges::contains(availableKinds.at(language), selectedKind))
-        {
-            std::println("The kind \"{}\" for the language \"{}\" isn't available.", selectedKind, parsedOptions["language"].as<std::string>());
-            std::exit(EXIT_FAILURE);
-        }
-
-        kind = selectedKind;
+        throw std::runtime_error(std::format("The kind \"{}\" for the language \"{}\" doesn't have a template setup for it.", kind, language));
     }
 
     return kind;
@@ -63,29 +35,26 @@ std::string pmake::setup_kind(cxxopts::ParseResult const& parsedOptions)
 
 std::string pmake::setup_language_standard(cxxopts::ParseResult const& parsedOptions)
 {
-    // TODO: perhaps the user could provide these?
-    std::unordered_map<std::string_view, std::vector<std::string>> const availableStandards
-    {
-        { "c++"sv, { "23"s, "20"s, "17"s, "14"s, "11"s } },
-        { "c"sv,   { "23"s, "17"s, "11"s, "99"s, } }
-    };
-
     auto const language = parsedOptions["language"].as<std::string>();
-    auto standard       = availableStandards.at(language).front();
+    auto standard       = parsedOptions["standard"].as<std::string>();
 
-    if (parsedOptions.count("standard"))
+    std::ifstream stream { "pmake-templates\\" + language + "\\pmake-info.json" };
+    nlohmann::json info {};
+    stream >> info;
+
+    auto const fnToString = [] (auto const& object) { return object.template get<std::string>(); };
+
+    if (standard != "latest" && !std::ranges::contains(info["standards"] | std::views::transform(fnToString), standard))
     {
-        auto const selectedStandard = parsedOptions["standard"].as<std::string>();
-
-        if (selectedStandard == "latest") { return standard; }
-
-        if (!std::ranges::contains(availableStandards.at(language), selectedStandard))
+        throw std::runtime_error(
+                std::format("The standard \"{}\" for the language \"{}\" isn't available. Available standards: {}", standard, language, info["standards"].dump()));
+    }
+    else
+    {
+        if (standard == "latest")
         {
-            std::println("The standard \"{}\" isn't for the language \"{}\".", selectedStandard, language);
-            std::exit(EXIT_FAILURE);
+            standard = info["standards"].front().get<std::string>();
         }
-
-        standard = selectedStandard;
     }
 
     return standard;
@@ -118,8 +87,7 @@ std::filesystem::path pmake::setup_template_path(cxxopts::ParseResult const& par
 
     if (!std::filesystem::exists(path))
     {
-        std::println("The project template \"{}\" doesn't exist.", path.string());
-        std::exit(EXIT_FAILURE);
+        throw std::runtime_error(std::format("The project template \"{}\" doesn't exist.", path.string()));
     }
 
     return path;

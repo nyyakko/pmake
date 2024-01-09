@@ -25,15 +25,22 @@ int main(int argumentCount, char const** argumentValues)
         return EXIT_SUCCESS;
     }
 
-    auto const projectName     = parsedOptions["name"].as<std::string>();
-    auto const projectLanguage = pmake::setup_language(parsedOptions);
-    auto const projectKind     = pmake::setup_kind(parsedOptions);
-    auto const projectStandard = pmake::setup_language_standard(parsedOptions);
+    try
+    {
+        auto const projectName     = parsedOptions["name"].as<std::string>();
+        auto const projectLanguage = pmake::setup_language(parsedOptions);
+        auto const projectKind     = pmake::setup_kind(parsedOptions);
+        auto const projectStandard = pmake::setup_language_standard(parsedOptions);
 
-    std::println("project name....: {}", projectName);
-    std::println("project kind....: {}", projectKind);
-    std::println("project language: {} ({})", parsedOptions["language"].as<std::string>(), projectStandard);
+        std::println("project name....: {}", projectName);
+        std::println("project kind....: {}", projectKind);
+        std::println("project language: {} ({})", parsedOptions["language"].as<std::string>(), projectStandard);
 
-    pmake::create_from_template(pmake::setup_template_path(parsedOptions), projectName, projectLanguage, projectStandard);
+        pmake::create_from_template(pmake::setup_template_path(parsedOptions), projectName, projectLanguage, projectStandard);
+    }
+    catch (std::exception const& exception)
+    {
+        std::println("{}", exception.what());
+    }
 }
 

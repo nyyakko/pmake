@@ -37,6 +37,7 @@ set(pmake_CompilerOptions ${pmake_CompilerOptions}
 )
 
 find_package(cxxopts CONFIG REQUIRED)
-set(pmake_ExternalLibraries cxxopts::cxxopts)
+find_package(nlohmann_json CONFIG REQUIRED)
+set(pmake_ExternalLibraries cxxopts::cxxopts nlohmann_json::nlohmann_json)
 
 add_subdirectory(pmake)
