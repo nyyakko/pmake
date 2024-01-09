@@ -6,30 +6,6 @@
 
 using namespace std::literals;
 
-std::string pmake::setup_kind(cxxopts::ParseResult const& parsedOptions)
-{
-    std::unordered_map<std::string_view, std::vector<std::string>> const availableKinds
-    {
-        { "c++"sv, { "executable"s, "library"s } },
-        { "c"sv,   { "executable"s, "library"s } }
-    };
-
-    auto kind = availableKinds.at(parsedOptions["language"].as<std::string>()).front();
-
-    if (parsedOptions.count("kind"))
-    {
-        auto const selectedKind = parsedOptions["kind"].as<std::string>();
-
-        if (!availableKinds.contains(selectedKind))
-        {
-            std::println("The kind \"{}\" for the language \"{}\" isn't available.", selectedKind, parsedOptions["language"].as<std::string>());
-            std::exit(EXIT_FAILURE);
-        }
-    }
-
-    return kind;
-}
-
 std::string pmake::setup_language(cxxopts::ParseResult const& parsedOptions)
 {
     // TODO: perhaps the user could provide these?
@@ -56,6 +32,34 @@ std::string pmake::setup_language(cxxopts::ParseResult const& parsedOptions)
 
     return language;
 }
+
+std::string pmake::setup_kind(cxxopts::ParseResult const& parsedOptions)
+{
+    std::unordered_map<std::string_view, std::vector<std::string>> const availableKinds
+    {
+        { "c++"sv, { "executable"s, "library"s } },
+        { "c"sv,   { "executable"s, "library"s } }
+    };
+
+    auto const language = parsedOptions["language"].as<std::string>();
+    auto kind           = availableKinds.at(language).front();
+
+    if (parsedOptions.count("kind"))
+    {
+        auto const selectedKind = parsedOptions["kind"].as<std::string>();
+
+        if (!std::ranges::contains(availableKinds.at(language), selectedKind))
+        {
+            std::println("The kind \"{}\" for the language \"{}\" isn't available.", selectedKind, parsedOptions["language"].as<std::string>());
+            std::exit(EXIT_FAILURE);
+        }
+
+        kind = selectedKind;
+    }
+
+    return kind;
+}
+
 
 std::string pmake::setup_language_standard(cxxopts::ParseResult const& parsedOptions)
 {
