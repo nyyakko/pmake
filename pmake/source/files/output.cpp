@@ -5,24 +5,26 @@
 #include <unordered_map>
 #include <ranges>
 
-#include <print>
+#include <nlohmann/json.hpp>
 
 using namespace std::literals;
 
-std::filesystem::path copy_and_rename_files_recursively(std::string_view projectName, std::unordered_map<std::string_view, std::string_view> const& wildcards, std::filesystem::path from, std::filesystem::path to);
-void replace_wildcards_recursively(std::filesystem::path from, std::unordered_map<std::string_view, std::string_view> const& wildcards);
+std::filesystem::path copy_and_rename_files_recursively(std::string_view projectName, std::unordered_map<std::string, std::string_view> const& wildcards, std::filesystem::path from, std::filesystem::path to);
+void replace_wildcards_recursively(std::filesystem::path from, std::unordered_map<std::string, std::string_view> const& wildcards);
 
 void pmake::create_from_template(std::filesystem::path templatePath, std::string_view projectName, std::string_view projectLanguage, std::string_view projectStandard)
 {
     if (!std::filesystem::exists(projectName)) { std::filesystem::create_directory(projectName); }
 
-    // TODO: perhaps the user could provide these?
-    std::unordered_map<std::string_view, std::string_view> wildcards
-    {
-        { "!PROJECT!", projectName },
-        { "!LANGUAGE!", projectLanguage },
-        { "!STANDARD!", projectStandard },
-    };
+    std::ifstream stream { "pmake-templates\\pmake-info.json" };
+    nlohmann::json info {};
+    stream >> info;
+
+    std::unordered_map<std::string, std::string_view> wildcards {};
+
+    wildcards.emplace(info["wildcards"]["project_name"], projectName);
+    wildcards.emplace(info["wildcards"]["project_language"], projectLanguage);
+    wildcards.emplace(info["wildcards"]["project_standard"], projectStandard);
 
     std::filesystem::path const from { templatePath };
     std::filesystem::path const to   { projectName };
@@ -30,7 +32,7 @@ void pmake::create_from_template(std::filesystem::path templatePath, std::string
     replace_wildcards_recursively(copy_and_rename_files_recursively(projectName, wildcards, from, to), wildcards);
 }
 
-std::filesystem::path copy_and_rename_files_recursively(std::string_view projectName, std::unordered_map<std::string_view, std::string_view> const& wildcards, std::filesystem::path from, std::filesystem::path to)
+std::filesystem::path copy_and_rename_files_recursively(std::string_view projectName, std::unordered_map<std::string, std::string_view> const& wildcards, std::filesystem::path from, std::filesystem::path to)
 {
     for (auto const& entry : std::filesystem::directory_iterator(from))
     {
@@ -69,7 +71,7 @@ std::filesystem::path copy_and_rename_files_recursively(std::string_view project
     return to;
 }
 
-void replace_wildcards_recursively(std::filesystem::path from, std::unordered_map<std::string_view, std::string_view> const& wildcards)
+void replace_wildcards_recursively(std::filesystem::path from, std::unordered_map<std::string, std::string_view> const& wildcards)
 {
     for (auto const& entry : std::filesystem::directory_iterator(from))
     {
@@ -101,7 +103,6 @@ void replace_wildcards_recursively(std::filesystem::path from, std::unordered_ma
         }
 
         std::fstream fileStream { entry.path(), std::ios::in | std::ios::out | std::ios::trunc };
-
         fileStream << content;
     }
 }
