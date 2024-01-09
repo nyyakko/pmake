@@ -32,10 +32,10 @@ std::pair<std::string, std::string> pmake::setup_kind(cxxopts::ParseResult const
     // FIXME: should find a better way to handle this in the future. perhaps with another ``pmake-info`` ?
     if (kind == "executable")
     {
-        if (parsedOptions.count("console")) { return { kind, "executable" }; }
+        if (parsedOptions.count("console")) { return { kind, "console" }; }
         else
         {
-            return { kind, "executable" };
+            return { kind, "console" };
         }
     }
     if (kind == "library")

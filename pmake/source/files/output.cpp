@@ -59,13 +59,13 @@ std::filesystem::path copy_and_rename_files_recursively(std::string_view project
             {
                 std::filesystem::rename(std::filesystem::path(to).append(entry.path().filename().string()), std::filesystem::path(to).append(entryName));
             }
-
-            continue;
         }
-
-        auto const workingDirectory = std::filesystem::path(to).append(entryName);
-        std::filesystem::create_directory(workingDirectory);
-        copy_and_rename_files_recursively(projectName, wildcards, entry, workingDirectory);
+        else
+        {
+            auto const workingDirectory = std::filesystem::path(to).append(entryName);
+            std::filesystem::create_directory(workingDirectory);
+            copy_and_rename_files_recursively(projectName, wildcards, entry, workingDirectory);
+        }
     }
 
     return to;

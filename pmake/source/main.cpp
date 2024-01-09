@@ -36,10 +36,11 @@ int main(int argumentCount, char const** argumentValues)
         std::println("┌─ pmake ─────────────");
         std::println("│ name....: {}", projectName);
         std::println("│ kind....: {} ({})", projectKind.first, projectKind.second);
-        std::println("│ language: {} ({})", parsedOptions["language"].as<std::string>(), projectStandard);
+        std::println("│ language: {} ({})", projectLanguage, projectStandard);
         std::println("└─────────────────────");
 
         pmake::create_from_template(pmake::setup_template_path(parsedOptions), projectName, projectLanguage, projectStandard);
+
     }
     catch (std::exception const& exception)
     {
