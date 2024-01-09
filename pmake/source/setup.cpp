@@ -19,7 +19,7 @@ std::string pmake::setup_language(cxxopts::ParseResult const& parsedOptions)
     return language;
 }
 
-std::string pmake::setup_kind(cxxopts::ParseResult const& parsedOptions)
+std::pair<std::string, std::string> pmake::setup_kind(cxxopts::ParseResult const& parsedOptions)
 {
     auto const language = parsedOptions["language"].as<std::string>();
     auto const kind     = parsedOptions["kind"].as<std::string>();
@@ -29,7 +29,26 @@ std::string pmake::setup_kind(cxxopts::ParseResult const& parsedOptions)
         throw std::runtime_error(std::format("The kind \"{}\" for the language \"{}\" doesn't have a template setup for it.", kind, language));
     }
 
-    return kind;
+    // FIXME: should find a better way to handle this in the future. perhaps with another ``pmake-info`` ?
+    if (kind == "executable")
+    {
+        if (parsedOptions.count("console")) { return { kind, "executable" }; }
+        else
+        {
+            return { kind, "executable" };
+        }
+    }
+    if (kind == "library")
+    {
+        if (parsedOptions.count("static")) { return { kind, "static" }; }
+        else if (parsedOptions.count("header-only")) { return { kind, "header-only" }; }
+        else
+        {
+            return { kind, "static" };
+        }
+    }
+
+    std::unreachable();
 }
 
 
