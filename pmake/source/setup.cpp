@@ -6,6 +6,30 @@
 
 using namespace std::literals;
 
+std::string pmake::setup_kind(cxxopts::ParseResult const& parsedOptions)
+{
+    std::unordered_map<std::string_view, std::vector<std::string>> const availableKinds
+    {
+        { "c++"sv, { "executable"s, "library"s } },
+        { "c"sv,   { "executable"s, "library"s } }
+    };
+
+    auto kind = availableKinds.at(parsedOptions["language"].as<std::string>()).front();
+
+    if (parsedOptions.count("kind"))
+    {
+        auto const selectedKind = parsedOptions["kind"].as<std::string>();
+
+        if (!availableKinds.contains(selectedKind))
+        {
+            std::println("The kind \"{}\" for the language \"{}\" isn't available.", selectedKind, parsedOptions["language"].as<std::string>());
+            std::exit(EXIT_FAILURE);
+        }
+    }
+
+    return kind;
+}
+
 std::string pmake::setup_language(cxxopts::ParseResult const& parsedOptions)
 {
     // TODO: perhaps the user could provide these?
@@ -15,13 +39,13 @@ std::string pmake::setup_language(cxxopts::ParseResult const& parsedOptions)
         { "c"sv,   "C"s   }
     };
 
-    auto language = "CXX"s;
+    auto language = availableLanguages.at(parsedOptions["language"].as<std::string>());
 
     if (parsedOptions.count("language"))
     {
         auto const selectedLanguage = parsedOptions["language"].as<std::string>();
 
-        if (!availableLanguages.contains(std::ranges::to<std::string>(selectedLanguage | std::views::transform(::tolower))))
+        if (!availableLanguages.contains(std::ranges::to<std::string>(selectedLanguage)))
         {
             std::println("The language \"{}\" isn't supported.", selectedLanguage);
             std::exit(EXIT_FAILURE);
@@ -33,16 +57,17 @@ std::string pmake::setup_language(cxxopts::ParseResult const& parsedOptions)
     return language;
 }
 
-std::string pmake::setup_language_standard(cxxopts::ParseResult const& parsedOptions, std::string const& projectLanguage)
+std::string pmake::setup_language_standard(cxxopts::ParseResult const& parsedOptions)
 {
     // TODO: perhaps the user could provide these?
     std::unordered_map<std::string_view, std::vector<std::string>> const availableStandards
     {
-        { "CXX"sv, { "23"s, "20"s, "17"s, "14"s, "11"s } },
-        { "C"sv,   { "23"s, "17"s, "11"s, "99"s, } }
+        { "c++"sv, { "23"s, "20"s, "17"s, "14"s, "11"s } },
+        { "c"sv,   { "23"s, "17"s, "11"s, "99"s, } }
     };
 
-    auto standard = availableStandards.at(projectLanguage).front();
+    auto const language = parsedOptions["language"].as<std::string>();
+    auto standard       = availableStandards.at(language).front();
 
     if (parsedOptions.count("standard"))
     {
@@ -50,9 +75,9 @@ std::string pmake::setup_language_standard(cxxopts::ParseResult const& parsedOpt
 
         if (selectedStandard == "latest") { return standard; }
 
-        if (!std::ranges::contains(availableStandards.at(projectLanguage), selectedStandard))
+        if (!std::ranges::contains(availableStandards.at(language), selectedStandard))
         {
-            std::println("The standard \"{}\" isn't for the language \"{}\".", selectedStandard, projectLanguage);
+            std::println("The standard \"{}\" isn't for the language \"{}\".", selectedStandard, language);
             std::exit(EXIT_FAILURE);
         }
 
@@ -62,18 +87,29 @@ std::string pmake::setup_language_standard(cxxopts::ParseResult const& parsedOpt
     return standard;
 }
 
-std::filesystem::path pmake::setup_template_path(cxxopts::ParseResult const& parsedOptions, std::string const& projectLanguage, std::string const& projectKind)
+std::filesystem::path pmake::setup_template_path(cxxopts::ParseResult const& parsedOptions)
 {
-    std::filesystem::path path { "pmake-templates\\"s + projectLanguage + "\\" + projectKind };
+    auto const language = parsedOptions["language"].as<std::string>();
+    auto const kind     = parsedOptions["kind"].as<std::string>();
 
-    if (parsedOptions.count("static")) { path += "\\static"; }
-    else if (parsedOptions.count("dynamic")) { path += "\\dynamic"; }
-    else if (parsedOptions.count("header-only")){ path += "\\header-only"; }
-    else if (parsedOptions.count("console")) { path += "\\console"; }
-    else if (parsedOptions.count("graphical")) { path += "\\graphical"; }
-    else
+    std::filesystem::path path { "pmake-templates\\"s + language + "\\" + kind };
+
+    if (kind == "executable")
     {
-        path += (projectKind == "executable") ? "\\console" : "\\static";
+        if (parsedOptions.count("console")) { path += "\\console"; }
+        else
+        {
+            path += "\\console";
+        }
+    }
+    else if (kind == "library")
+    {
+        if (parsedOptions.count("static")) { path += "\\static"; }
+        else if (parsedOptions.count("header-only")) { path += "\\header-only"; }
+        else
+        {
+            path += "\\static";
+        }
     }
 
     if (!std::filesystem::exists(path))
