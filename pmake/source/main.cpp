@@ -35,7 +35,7 @@ int main(int argumentCount, char const** argumentValues)
         // stolen from https://github.com/ArthurSonzogni/FTXUI/blob/main/cmake/ftxui_message.cmake
         std::println("┌─ pmake ─────────────");
         std::println("│ name....: {}", projectName);
-        std::println("│ kind....: {}", projectKind);
+        std::println("│ kind....: {} ({})", projectKind.first, projectKind.second);
         std::println("│ language: {} ({})", parsedOptions["language"].as<std::string>(), projectStandard);
         std::println("└─────────────────────");
 
