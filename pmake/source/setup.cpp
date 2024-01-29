@@ -38,6 +38,7 @@ std::pair<std::string, std::string> pmake::setup_kind(cxxopts::ParseResult const
             return { kind, "console" };
         }
     }
+
     if (kind == "library")
     {
         if (parsedOptions.count("static")) { return { kind, "static" }; }
@@ -50,7 +51,6 @@ std::pair<std::string, std::string> pmake::setup_kind(cxxopts::ParseResult const
 
     std::unreachable();
 }
-
 
 std::string pmake::setup_language_standard(cxxopts::ParseResult const& parsedOptions)
 {
