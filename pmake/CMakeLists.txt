@@ -1,8 +1,15 @@
 add_subdirectory(source)
+add_subdirectory(include/${PROJECT_NAME})
 
 add_executable(${PROJECT_NAME} "${pmake_SourceFiles}")
 
-enable_static_analyzers(${PROJECT_NAME} ON)
+if (ENABLE_CLANGTIDY)
+    enable_clang_tidy()
+endif()
+
+if (ENABLE_CPPCHECK)
+    enable_cppcheck()
+endif()
 
 target_include_directories(${PROJECT_NAME} 
     PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" 

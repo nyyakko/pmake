@@ -7,8 +7,11 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE})
 set(CMAKE_TOOLCHAIN_FILE $ENV{CMAKE_TOOLCHAIN_FILE})
 
 include(static_analyzers)
-include(toolchain_vcpkg)
+include(enable_vcpkg)
 include(remote_clone)
+
+option(ENABLE_CLANGTIDY "" TRUE)
+option(ENABLE_CPPCHECK "" TRUE)
 
 require_vcpkg()
 
@@ -38,6 +41,7 @@ set(pmake_CompilerOptions ${pmake_CompilerOptions}
 
 find_package(cxxopts CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
+
 set(pmake_ExternalLibraries cxxopts::cxxopts nlohmann_json::nlohmann_json)
 
 add_subdirectory(pmake)
