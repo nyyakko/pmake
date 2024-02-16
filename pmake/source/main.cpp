@@ -43,6 +43,7 @@ std::pair<std::string, std::string> setup_kind(cxxopts::ParseResult const& parse
     // FIXME: should find a better way to handle this in the future. perhaps with another ``pmake-info`` ?
     if (kind == "executable")
     {
+        // cppcheck-suppress duplicateBranch
         if (parsedOptions.count("console")) { return { kind, "console" }; }
         else
         {
@@ -99,6 +100,7 @@ std::filesystem::path setup_template_path(cxxopts::ParseResult const& parsedOpti
 
     if (kind == "executable")
     {
+        // cppcheck-suppress duplicateBranch
         if (parsedOptions.count("console")) { path += "\\console"; }
         else
         {
@@ -222,14 +224,15 @@ int main(int argumentCount, char const** argumentValues)
 {
     cxxopts::Options options { "pmake" };
 
-    options.add_options()
+    auto _ = options.add_options()
         | cxxopts::option("h,help", "shows this menu")
         | cxxopts::option("n,name", "name of the project", cxxopts::value<std::string>())
         | cxxopts::option("l,language", "language used in the project", cxxopts::value<std::string>()->default_value("c++"))
         | cxxopts::option("k,kind", "kind of the project", cxxopts::value<std::string>()->default_value("executable"))
         | cxxopts::option("s,standard", "language standard used in the project", cxxopts::value<std::string>()->default_value("latest"))
-
-        | cxxopts::option("console", "") | cxxopts::option("static", "") | cxxopts::option("header-only", "");
+        | cxxopts::option("console", "")
+        | cxxopts::option("static", "")
+        | cxxopts::option("header-only", "");
 
     auto const parsedOptions = options.parse(argumentCount, argumentValues);
 
