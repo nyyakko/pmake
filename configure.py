@@ -3,4 +3,5 @@ import sys
 
 sys.argv.pop(0)
 
-os.system(f'cmake { " ".join(sys.argv) } -G Ninja -B./build/ -S./')
+os.system('vcpkg install --feature-flags=registries,manifests')
+os.system(f'cmake --preset debug { " ".join(sys.argv) }')

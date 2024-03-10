@@ -1,0 +1,7 @@
+{
+    "dependencies": [
+        "cxxopts",
+        "nlohmann-json",
+        "err-or"
+    ]
+}

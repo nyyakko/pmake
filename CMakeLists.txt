@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.25)
 project(pmake LANGUAGES CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -37,11 +37,13 @@ set(pmake_CompilerOptions ${pmake_CompilerOptions}
     -Wnull-dereference
     -Wdouble-promotion
     -Wimplicit-fallthrough
+    -Wno-gnu-statement-expression-from-macro-expansion
 )
 
 find_package(cxxopts CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
+find_package(err_or CONFIG REQUIRED)
 
-set(pmake_ExternalLibraries cxxopts::cxxopts nlohmann_json::nlohmann_json)
+set(pmake_ExternalLibraries cxxopts::cxxopts nlohmann_json::nlohmann_json err_or::err_or)
 
 add_subdirectory(pmake)

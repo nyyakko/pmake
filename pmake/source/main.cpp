@@ -1,8 +1,16 @@
+#include "runtime/Runtime.hpp"
+
 #include <cxxopts.hpp>
+#include <err_or/ErrorOr.hpp>
+#include <minwindef.h>
 #include <nlohmann/json.hpp>
 
-#include <print>
 #include <fstream>
+#include <print>
+#include <ranges>
+
+auto static const ROOT_FOLDER      = runtime::get_program_root_dir().string();
+auto static const TEMPLATES_FOLDER = std::format("{}\\pmake-templates", ROOT_FOLDER);
 
 namespace cxxopts {
 
@@ -18,85 +26,102 @@ namespace cxxopts {
 
 }
 
-std::string setup_language(cxxopts::ParseResult const& parsedOptions)
+error::ErrorOr<std::string> setup_language(cxxopts::ParseResult const& parsedOptions)
 {
     auto const language = parsedOptions["language"].as<std::string>();
 
-    if (!std::filesystem::exists("pmake-templates\\" + language))
+    if (!std::filesystem::exists(std::format("{}\\{}", TEMPLATES_FOLDER, language)))
     {
-        throw std::runtime_error(std::format("The language \"{}\" doesn't have a template setup for it.", language));
+        return error::make_error("The language \"{}\" doesn't have a template setup for it. Available languages: [{}]", language, [] {
+                return std::filesystem::directory_iterator(TEMPLATES_FOLDER)
+                    | std::views::filter([] (auto entry) { return std::filesystem::is_directory(entry) && !entry.path().filename().string().starts_with('.'); })
+                    | std::views::transform([] (auto entry) { return std::format("{}", entry.path().filename().string()); })
+                    | std::views::join_with(',')
+                    | std::ranges::to<std::string>();
+        }());
     }
 
     return language;
 }
 
-std::pair<std::string, std::string> setup_kind(cxxopts::ParseResult const& parsedOptions)
+error::ErrorOr<std::pair<std::string, std::string>> setup_kind(cxxopts::ParseResult const& parsedOptions)
 {
+    using namespace std::literals;
+
     auto const language = parsedOptions["language"].as<std::string>();
     auto const kind     = parsedOptions["kind"].as<std::string>();
 
-    if (!std::filesystem::exists("pmake-templates\\" + language + "\\" + kind))
+    if (!std::filesystem::exists(std::format("{}\\{}\\{}", TEMPLATES_FOLDER, language, kind)))
     {
-        throw std::runtime_error(std::format("The kind \"{}\" for the language \"{}\" doesn't have a template setup for it.", kind, language));
+        return error::make_error("The kind \"{}\" for the language \"{}\" doesn't have a template setup for it.", kind, language);
     }
 
     // FIXME: should find a better way to handle this in the future. perhaps with another ``pmake-info`` ?
     if (kind == "executable")
     {
         // cppcheck-suppress duplicateBranch
-        if (parsedOptions.count("console")) { return { kind, "console" }; }
+        if (parsedOptions.count("console")) { return std::pair { kind, "console"s }; }
         else
         {
-            return { kind, "console" };
+            return std::pair { kind, "console"s };
         }
     }
-
-    if (kind == "library")
+    else if (kind == "library")
     {
-        if (parsedOptions.count("static")) { return { kind, "static" }; }
-        else if (parsedOptions.count("header-only")) { return { kind, "header-only" }; }
+        if (parsedOptions.count("static")) { return std::pair { kind, "static"s }; }
+        else if (parsedOptions.count("header-only")) { return std::pair { kind, "header-only"s }; }
         else
         {
-            return { kind, "static" };
+            return std::pair { kind, "static"s };
         }
     }
 
     std::unreachable();
 }
 
-std::string setup_language_standard(cxxopts::ParseResult const& parsedOptions)
+error::ErrorOr<std::string> setup_language_standard(cxxopts::ParseResult const& parsedOptions)
 {
     auto const language = parsedOptions["language"].as<std::string>();
-    auto standard       = parsedOptions["standard"].as<std::string>();
+    auto const standard = parsedOptions["standard"].as<std::string>();
 
-    std::ifstream stream { "pmake-templates\\" + language + "\\pmake-info.json" };
+    std::ifstream stream { std::format("{}\\{}\\pmake-info.json", TEMPLATES_FOLDER, language) };
+
+    if (stream.fail())
+    {
+        return error::make_error("The language \"{}\" doesn't have standards available.", language);
+    }
+
     nlohmann::json info {};
     stream >> info;
 
-    auto const fnToString = [] (auto const& object) { return object.template get<std::string>(); };
+    auto const fnToString = [] (auto object) { return object.template get<std::string>(); };
 
     if (standard != "latest" && !std::ranges::contains(info["standards"] | std::views::transform(fnToString), standard))
     {
-        throw std::runtime_error(
-                std::format("The standard \"{}\" for the language \"{}\" isn't available. Available standards: {}", standard, language, info["standards"].dump()));
+        return error::make_error("The standard \"{}\" for the language \"{}\" isn't available. Available standards: [{}]", standard, language, [&] {
+                return info["standards"]
+                    | std::views::transform([] (auto entry) { return entry.template get<std::string>(); })
+                    | std::views::join_with(',')
+                    | std::ranges::to<std::string>();
+        }());
     }
     else
     {
         if (standard == "latest")
         {
-            standard = info["standards"].front().get<std::string>();
+            return info["standards"].front().get<std::string>();
         }
     }
 
     return standard;
 }
 
-std::filesystem::path setup_template_path(cxxopts::ParseResult const& parsedOptions)
+error::ErrorOr<std::filesystem::path> setup_template_path(cxxopts::ParseResult const& parsedOptions)
 {
     auto const language = parsedOptions["language"].as<std::string>();
     auto const kind     = parsedOptions["kind"].as<std::string>();
 
-    std::filesystem::path path { "pmake-templates\\" + language + "\\" + kind };
+    std::filesystem::path path { std::format("{}\\{}\\{}", TEMPLATES_FOLDER, language, kind) };
 
     if (kind == "executable")
     {
@@ -119,13 +144,13 @@ std::filesystem::path setup_template_path(cxxopts::ParseResult const& parsedOpti
 
     if (!std::filesystem::exists(path))
     {
-        throw std::runtime_error(std::format("The project template \"{}\" doesn't exist.", path.string()));
+        return error::make_error("The project template \"{}\" doesn't exist.", path.string());
     }
 
     return path;
 }
 
-std::filesystem::path copy_and_rename_files_recursively(std::string_view projectName, std::unordered_map<std::string, std::string_view> const& wildcards, std::filesystem::path from, std::filesystem::path to)
+std::filesystem::path copy_and_rename_files_recursively(std::string projectName, std::unordered_map<std::string, std::string> const& wildcards, std::filesystem::path from, std::filesystem::path to)
 {
     for (auto const& entry : std::filesystem::directory_iterator(from))
     {
@@ -137,8 +162,8 @@ std::filesystem::path copy_and_rename_files_recursively(std::string_view project
 
             if (position != std::string::npos)
             {
-                auto const first = std::next(entryName.begin(), static_cast<int>(position));
-                auto const last  = std::next(first, static_cast<int>(wildcard.size()));
+                auto const first = std::next(entryName.begin(), static_cast<int64_t>(position));
+                auto const last  = std::next(first, static_cast<int64_t>(wildcard.size()));
 
                 entryName.replace(first, last, projectName);
             }
@@ -164,7 +189,7 @@ std::filesystem::path copy_and_rename_files_recursively(std::string_view project
     return to;
 }
 
-void replace_wildcards_recursively(std::filesystem::path from, std::unordered_map<std::string, std::string_view> const& wildcards)
+void replace_wildcards_recursively(std::filesystem::path from, std::unordered_map<std::string, std::string> const& wildcards)
 {
     for (auto const& entry : std::filesystem::directory_iterator(from))
     {
@@ -174,19 +199,17 @@ void replace_wildcards_recursively(std::filesystem::path from, std::unordered_ma
             continue;
         }
 
-        std::stringstream fileContentStream {};
-        fileContentStream << std::fstream(entry.path()).rdbuf();
+        std::fstream fileStream { entry.path() };
+        std::stringstream contentStream {};
+        contentStream << fileStream.rdbuf();
 
-        auto content = fileContentStream.str();
+        auto content = contentStream.str();
 
         for (auto const& wildcard : wildcards | std::views::keys)
         {
             while (auto const wildcardPosition = content.find(wildcard))
             {
-                if (wildcardPosition == std::string::npos)
-                {
-                    break;
-                }
+                if (wildcardPosition == std::string::npos) { break; }
 
                 auto const first = std::next(content.begin(), static_cast<int>(wildcardPosition));
                 auto const last  = std::next(first, static_cast<int>(wildcard.size()));
@@ -195,36 +218,53 @@ void replace_wildcards_recursively(std::filesystem::path from, std::unordered_ma
             }
         }
 
-        std::fstream fileStream { entry.path(), std::ios::in | std::ios::out | std::ios::trunc };
-        fileStream << content;
+        std::fstream { entry.path(), std::ios::in | std::ios::out | std::ios::trunc } << content;
     }
 }
 
-void create_from_template(std::filesystem::path templatePath, std::string_view projectName, std::string_view projectLanguage, std::string_view projectStandard)
+error::ErrorOr<std::filesystem::path> create_from_template(std::string projectName, std::string projectLanguage, std::string projectStandard, std::filesystem::path templatePath)
 {
     if (!std::filesystem::exists(projectName)) { std::filesystem::create_directory(projectName); }
 
-    std::ifstream stream { "pmake-templates\\pmake-info.json" };
-    nlohmann::json info {};
-    stream >> info;
+    std::ifstream fileStream { std::format("{}\\pmake-info.json", TEMPLATES_FOLDER) };
 
-    std::unordered_map<std::string, std::string_view> wildcards {};
+    if (fileStream.fail())
+    {
+        return error::make_error("Couldn't open {}\\pmake-info.json", TEMPLATES_FOLDER);
+    }
+
+    auto const info = nlohmann::json::parse(fileStream);
+
+    std::unordered_map<std::string, std::string> wildcards {};
 
     wildcards.emplace(info["wildcards"]["project_name"], projectName);
     wildcards.emplace(info["wildcards"]["project_language"], projectLanguage);
     wildcards.emplace(info["wildcards"]["project_standard"], projectStandard);
 
     std::filesystem::path const from { templatePath };
-    std::filesystem::path const to   { projectName };
+    std::filesystem::path const to   { std::filesystem::current_path().append(projectName) };
 
     replace_wildcards_recursively(copy_and_rename_files_recursively(projectName, wildcards, from, to), wildcards);
+
+    return to;
+}
+
+void print_project_setup(std::string projectName, std::string projectLanguage, std::string projectStandard, std::pair<std::string, std::string> projectKind, std::filesystem::path projectDestination)
+{
+    std::println("┌– [pmake] –––");
+    std::println("| name.......: {}", projectName);
+    std::println("| language...: {} ({})", projectLanguage, projectStandard);
+    std::println("| kind.......: {} ({})", projectKind.first, projectKind.second);
+    std::println("|");
+    std::println("| output.....: {}", projectDestination.string());
+    std::println("└–––––––––––––");
 }
 
 int main(int argumentCount, char const** argumentValues)
 {
     cxxopts::Options options { "pmake" };
 
-    auto _ = options.add_options()
+    options.add_options()
         | cxxopts::option("h,help", "shows this menu")
         | cxxopts::option("n,name", "name of the project", cxxopts::value<std::string>())
         | cxxopts::option("l,language", "language used in the project", cxxopts::value<std::string>()->default_value("c++"))
@@ -232,6 +272,7 @@ int main(int argumentCount, char const** argumentValues)
         | cxxopts::option("s,standard", "language standard used in the project", cxxopts::value<std::string>()->default_value("latest"))
         | cxxopts::option("console", "")
         | cxxopts::option("static", "")
+        // cppcheck-suppress constStatement
         | cxxopts::option("header-only", "");
 
     auto const parsedOptions = options.parse(argumentCount, argumentValues);
@@ -239,27 +280,22 @@ int main(int argumentCount, char const** argumentValues)
     if (!parsedOptions.count("name") || parsedOptions.count("help"))
     {
         std::println("{}", options.help());
-        return EXIT_SUCCESS;
+        return EXIT_FAILURE;
     }
 
-    try
+    if (!std::filesystem::exists(TEMPLATES_FOLDER))
     {
-        auto const projectName     = parsedOptions["name"].as<std::string>();
-        auto const projectLanguage = setup_language(parsedOptions);
-        auto const projectKind     = setup_kind(parsedOptions);
-        auto const projectStandard = setup_language_standard(parsedOptions);
-
-        std::println("┌─ pmake ─────────────");
-        std::println("│ name....: {}", projectName);
-        std::println("│ kind....: {} ({})", projectKind.first, projectKind.second);
-        std::println("│ language: {} ({})", projectLanguage, projectStandard);
-        std::println("└─────────────────────");
-
-        create_from_template(setup_template_path(parsedOptions), projectName, projectLanguage, projectStandard);
-
+        std::println("Couldn't find pmake-templates folder. Did you install the program properly?");
+        return EXIT_FAILURE;
     }
-    catch (std::exception const& exception)
-    {
-        std::println("{}", exception.what());
-    }
+
+    auto const projectName     = parsedOptions["name"].as<std::string>();
+    auto const projectLanguage = MUST(setup_language(parsedOptions));
+    auto const projectKind     = MUST(setup_kind(parsedOptions));
+    auto const projectStandard = MUST(setup_language_standard(parsedOptions));
+
+    auto const result = MUST(create_from_template(projectName, projectLanguage, projectStandard, MUST(setup_template_path(parsedOptions))));
+
+    print_project_setup(projectName, projectLanguage, projectStandard, projectKind, result);
 }
+
