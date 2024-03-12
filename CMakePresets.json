@@ -1,15 +1,24 @@
 {
     "version": 6,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 25,
+        "patch": 0
+    },
     "configurePresets": [
         {
-            "name": "debug",
-            "displayName": "x64 debug",
+            "name": "base",
+            "displayName": "x64 base",
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build",
             "architecture": {
                 "value": "x64",
                 "strategy": "external"
-            },
+            }
+        },
+        {
+            "name": "debug",
+            "inherits": [ "base" ],
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "ENABLE_CLANGTIDY": true,
@@ -18,13 +27,7 @@
         },
         {
             "name": "release",
-            "displayName": "x64 release",
-            "generator": "Ninja",
-            "binaryDir": "${sourceDir}/build",
-            "architecture": {
-                "value": "x64",
-                "strategy": "external"
-            },
+            "inherits": [ "base" ],
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
                 "ENABLE_CLANGTIDY": false,

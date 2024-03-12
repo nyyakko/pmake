@@ -17,10 +17,6 @@ require_vcpkg()
 
 remote_clone("" "pmake-templates" "nyyakko/pmake-templates.git" "origin/master")
 
-# set(pmake_LinkerOptions ${pmake_LinkerOptions}
-#   . . .
-# )
-
 set(pmake_CompilerOptions ${pmake_CompilerOptions}
     -Werror
     -Wall
@@ -39,6 +35,8 @@ set(pmake_CompilerOptions ${pmake_CompilerOptions}
     -Wimplicit-fallthrough
     -Wno-gnu-statement-expression-from-macro-expansion
 )
+
+# set(pmake_LinkerOptions ${pmake_LinkerOptions})
 
 find_package(cxxopts CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)

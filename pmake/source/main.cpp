@@ -2,29 +2,13 @@
 
 #include <cxxopts.hpp>
 #include <err_or/ErrorOr.hpp>
-#include <minwindef.h>
 #include <nlohmann/json.hpp>
 
 #include <fstream>
 #include <print>
 #include <ranges>
 
-auto static const ROOT_FOLDER      = runtime::get_program_root_dir().string();
-auto static const TEMPLATES_FOLDER = std::format("{}\\pmake-templates", ROOT_FOLDER);
-
-namespace cxxopts {
-
-    constexpr auto option(auto&&... arguments)
-    {
-        return Option(arguments...);
-    }
-
-    inline OptionAdder operator|(OptionAdder adder, Option option)
-    {
-        return adder(option.opts_, option.desc_, option.value_, option.arg_help_);
-    }
-
-}
+auto static const TEMPLATES_FOLDER = std::format("{}\\pmake-templates", runtime::get_program_root_dir().string());
 
 error::ErrorOr<std::string> setup_language(cxxopts::ParseResult const& parsedOptions)
 {
@@ -150,7 +134,7 @@ error::ErrorOr<std::filesystem::path> setup_template_path(cxxopts::ParseResult c
     return path;
 }
 
-std::filesystem::path copy_and_rename_files_recursively(std::string projectName, std::unordered_map<std::string, std::string> const& wildcards, std::filesystem::path from, std::filesystem::path to)
+std::filesystem::path copy_and_rename_files_recursively(std::string_view const projectName, std::unordered_map<std::string, std::string> const& wildcards, std::filesystem::path const from, std::filesystem::path const to)
 {
     for (auto const& entry : std::filesystem::directory_iterator(from))
     {
@@ -189,7 +173,7 @@ std::filesystem::path copy_and_rename_files_recursively(std::string projectName,
     return to;
 }
 
-void replace_wildcards_recursively(std::filesystem::path from, std::unordered_map<std::string, std::string> const& wildcards)
+void replace_wildcards_recursively(std::filesystem::path const from, std::unordered_map<std::string, std::string> const& wildcards)
 {
     for (auto const& entry : std::filesystem::directory_iterator(from))
     {
@@ -222,7 +206,7 @@ void replace_wildcards_recursively(std::filesystem::path from, std::unordered_ma
     }
 }
 
-error::ErrorOr<std::filesystem::path> create_from_template(std::string projectName, std::string projectLanguage, std::string projectStandard, std::filesystem::path templatePath)
+error::ErrorOr<std::filesystem::path> create_from_template(std::string_view const projectName, std::string_view const projectLanguage, std::string_view const projectStandard, std::filesystem::path const templatePath)
 {
     if (!std::filesystem::exists(projectName)) { std::filesystem::create_directory(projectName); }
 
@@ -249,43 +233,31 @@ error::ErrorOr<std::filesystem::path> create_from_template(std::string projectNa
     return to;
 }
 
-void print_project_setup(std::string projectName, std::string projectLanguage, std::string projectStandard, std::pair<std::string, std::string> projectKind, std::filesystem::path projectDestination)
-{
-    std::println("┌– [pmake] –––");
-    std::println("| name.......: {}", projectName);
-    std::println("| language...: {} ({})", projectLanguage, projectStandard);
-    std::println("| kind.......: {} ({})", projectKind.first, projectKind.second);
-    std::println("|");
-    std::println("| output.....: {}", projectDestination.string());
-    std::println("└–––––––––––––");
-}
-
 int main(int argumentCount, char const** argumentValues)
 {
+    if (!std::filesystem::exists(TEMPLATES_FOLDER))
+    {
+        std::println("Couldn't find pmake-templates folder. Did you install the program properly?");
+        return EXIT_FAILURE;
+    }
+
     cxxopts::Options options { "pmake" };
 
     options.add_options()
-        | cxxopts::option("h,help", "shows this menu")
-        | cxxopts::option("n,name", "name of the project", cxxopts::value<std::string>())
-        | cxxopts::option("l,language", "language used in the project", cxxopts::value<std::string>()->default_value("c++"))
-        | cxxopts::option("k,kind", "kind of the project", cxxopts::value<std::string>()->default_value("executable"))
-        | cxxopts::option("s,standard", "language standard used in the project", cxxopts::value<std::string>()->default_value("latest"))
-        | cxxopts::option("console", "")
-        | cxxopts::option("static", "")
-        // cppcheck-suppress constStatement
-        | cxxopts::option("header-only", "");
+        ("h,help", "shows this menu")
+        ("n,name", "name of the project", cxxopts::value<std::string>())
+        ("l,language", "language used in the project", cxxopts::value<std::string>()->default_value("c++"))
+        ("k,kind", "kind of the project", cxxopts::value<std::string>()->default_value("executable"))
+        ("s,standard", "language standard used in the project", cxxopts::value<std::string>()->default_value("latest"))
+        ("console", "")
+        ("static", "")
+        ("header-only", "");
 
     auto const parsedOptions = options.parse(argumentCount, argumentValues);
 
     if (!parsedOptions.count("name") || parsedOptions.count("help"))
     {
         std::println("{}", options.help());
-        return EXIT_FAILURE;
-    }
-
-    if (!std::filesystem::exists(TEMPLATES_FOLDER))
-    {
-        std::println("Couldn't find pmake-templates folder. Did you install the program properly?");
         return EXIT_FAILURE;
     }
 
@@ -296,6 +268,12 @@ int main(int argumentCount, char const** argumentValues)
 
     auto const result = MUST(create_from_template(projectName, projectLanguage, projectStandard, MUST(setup_template_path(parsedOptions))));
 
-    print_project_setup(projectName, projectLanguage, projectStandard, projectKind, result);
+    std::println("┌– [pmake] –––");
+    std::println("| name.......: {}", projectName);
+    std::println("| language...: {} ({})", projectLanguage, projectStandard);
+    std::println("| kind.......: {} ({})", projectKind.first, projectKind.second);
+    std::println("|");
+    std::println("| output.....: {}", result.string());
+    std::println("└–––––––––––––");
 }
 
