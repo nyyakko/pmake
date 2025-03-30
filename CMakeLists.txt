@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.5)
 
 project(pmake LANGUAGES CXX)
 
@@ -12,8 +12,26 @@ CPMAddPackage("gh:Dobiasd/FunctionalPlus#v0.2.24")
 CPMAddPackage("gh:fmtlib/fmt#10.2.1")
 CPMAddPackage("gh:jarro2783/cxxopts@3.0.0")
 CPMAddPackage("gh:nlohmann/json@3.11.3")
-CPMAddPackage("gh:nyyakko/LibError#27c056f")
-CPMAddPackage("gh:nyyakko/LibPreprocessor#5174011")
+
+CPMFindPackage(
+    NAME expected
+    GITHUB_REPOSITORY nyyakko/expected
+    GIT_TAG master
+)
+
+CPMFindPackage(
+    NAME LibError
+    GITHUB_REPOSITORY nyyakko/LibError
+    GIT_TAG master
+    OPTIONS "ENABLE_CLANGTIDY OFF" "ENABLE_CPPCHECK OFF"
+)
+
+CPMFindPackage(
+    NAME LibPreprocessor
+    GITHUB_REPOSITORY nyyakko/LibPreprocessor
+    GIT_TAG master
+    OPTIONS "ENABLE_CLANGTIDY OFF" "ENABLE_CPPCHECK OFF"
+)
 
 set(pmake_ExternalLibraries
     cxxopts

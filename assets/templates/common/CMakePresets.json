@@ -16,9 +16,7 @@
                 "strategy": "external"
             },
             "cacheVariables": {
-%IF [<|ENV:FEATURES|> CONTAINS <installable>]:
                 "EXPORT_DIR": "${sourceDir}/build/cmake",
-%END
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
 %IF [<|ENV:KIND|> EQUALS <library>]:
     %SWITCH [<|ENV:MODE|>]:

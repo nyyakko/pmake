@@ -27,10 +27,16 @@ endif()
 # set(!PROJECT!_CompilerOptions ${!PROJECT!_CompilerOptions})
 # set(!PROJECT!_LinkerOptions ${!PROJECT!_LinkerOptions})
 
+# Downloads source from remote directly
 # CPMAddPackage("gh:repo/package1#REF")
-# CPMAddPackage("gh:repo/package2#REF")
-# ...
-#
+
+# Tries to find package locally first, then downloads if it couldn't be found.
+# CPMFindPackage(
+#     NAME package2
+#     GITHUB_REPOSITORY repo/package2
+#     GIT_TAG REF
+# )
+
 # set(!PROJECT!_ExternalLibraries package1 package2 ...)
 
 add_subdirectory(!PROJECT!)
