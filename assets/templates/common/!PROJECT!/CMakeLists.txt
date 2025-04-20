@@ -1,4 +1,4 @@
-%IF [[<|ENV:KIND|> EQUALS <executable>] OR [[<|ENV:KIND|> EQUALS <library>] AND [<|ENV:MODE|> EQUALS <static>]]]:
+%IF [[<|ENV:KIND|> EQUALS <executable>] OR [<|ENV:MODE|> EQUALS <static>]]:
 add_subdirectory(source)
 %END
 add_subdirectory(include/${PROJECT_NAME})
@@ -16,6 +16,7 @@ add_subdirectory(include/${PROJECT_NAME})
         %END
     %END
     @ add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
+    @ set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${PROJECT_NAME} PREFIX "")
 %ELSE:
     @ add_executable(${PROJECT_NAME} "${!PROJECT!_SourceFiles}")
 %END
@@ -28,6 +29,9 @@ if (ENABLE_CPPCHECK)
     enable_cppcheck(${PROJECT_NAME})
 endif()
 
+%IF [<|ENV:MODE|> EQUALS <header-only>]:
+set_target_properties(${PROJECT_NAME} PROPERTIES VERIFY_INTERFACE_HEADER_SETS TRUE)
+%END
 target_include_directories(${PROJECT_NAME}
 %IF [NOT [<|ENV:MODE|> EQUALS <header-only>]]:
     PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/${PROJECT_NAME}"
@@ -41,20 +45,16 @@ target_include_directories(${PROJECT_NAME}
 %END
 )
 
-%IF [[<|ENV:KIND|> EQUALS <library>] AND [<|ENV:MODE|> EQUALS <header-only>]]:
-set_target_properties(${PROJECT_NAME} PROPERTIES VERIFY_INTERFACE_HEADER_SETS TRUE)
-%END
-
 %SWITCH [<|ENV:LANGUAGE|>]:
     %CASE [<c++>]:
-        %IF [[<|ENV:KIND|> EQUALS <library>] AND [<|ENV:MODE|> EQUALS <header-only>]]:
+        %IF [<|ENV:MODE|> EQUALS <header-only>]:
             @@@ target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_!STANDARD!)
         %ELSE:
             @@@ target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_!STANDARD!)
         %END
     %END
     %CASE [<c>]:
-        %IF [[<|ENV:KIND|> EQUALS <library>] AND [<|ENV:MODE|> EQUALS <header-only>]]:
+        %IF [<|ENV:MODE|> EQUALS <header-only>]:
             @@@ target_compile_features(${PROJECT_NAME} INTERFACE c_std_!STANDARD!)
         %ELSE:
             @@@ target_compile_features(${PROJECT_NAME} PRIVATE c_std_!STANDARD!)
@@ -62,7 +62,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES VERIFY_INTERFACE_HEADER_SETS TR
     %END
 %END
 
-%IF [<|ENV:FEATURES|> CONTAINS <installable>]:
+%IF [[<|ENV:FEATURES|> CONTAINS <installable>] OR [<|ENV:KIND|> EQUALS <library>]]:
 target_sources(${PROJECT_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS include FILES ${!PROJECT!_HeaderFiles})
 
 export(TARGETS      ${PROJECT_NAME}
@@ -85,7 +85,7 @@ install(EXPORT      ${PROJECT_NAME}Targets
 install(FILES ${PROJECT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake DESTINATION ${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}/cmake)
 %END
 
-%IF [[<|ENV:KIND|> EQUALS <library>] AND [<|ENV:MODE|> EQUALS <header-only>]]:
+%IF [<|ENV:MODE|> EQUALS <header-only>]:
 target_link_options(${PROJECT_NAME} INTERFACE ${!PROJECT!_LinkerOptions})
 target_compile_options(${PROJECT_NAME} INTERFACE ${!PROJECT!_CompilerOptions})
 target_link_libraries(${PROJECT_NAME} INTERFACE ${!PROJECT!_ExternalLibraries})

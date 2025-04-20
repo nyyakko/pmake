@@ -1,5 +1,4 @@
 function(enable_cppcheck PROJECT)
-
     find_program(CPPCHECK cppcheck)
 
     if (NOT CPPCHECK)
@@ -19,7 +18,7 @@ function(enable_cppcheck PROJECT)
             --enable=style,performance,warning,portability
             --inline-suppr
             --suppress=cppcheckError
-            --suppress=internalAstErrorasd
+            --suppress=internalAstError
             --suppress=unmatchedSuppression
             --suppress=passedByValue
             --suppress=syntaxError

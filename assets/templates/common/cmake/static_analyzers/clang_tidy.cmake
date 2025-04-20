@@ -1,5 +1,4 @@
 function(enable_clang_tidy PROJECT)
-
     find_program(CLANGTIDY clang-tidy)
 
     if (NOT CLANGTIDY)

@@ -1,5 +1,4 @@
 function(enable_tests PROJECT)
-
     include(GoogleTest)
 
     if (NOT ${CMAKE_HOST_SYSTEM_NAME} MATCHES "Windows")
@@ -24,5 +23,4 @@ function(enable_tests PROJECT)
 
     enable_testing()
     add_subdirectory(${PROJECT_SOURCE_DIR}/tests)
-
 endfunction()

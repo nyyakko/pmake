@@ -1,43 +1,35 @@
 {
     "version": 6,
-    "cmakeMinimumRequired": {
-        "major": 3,
-        "minor": 25,
-        "patch": 0
-    },
+    "cmakeMinimumRequired": { "major": 3, "minor": 25, "patch": 0 },
     "configurePresets": [
         {
             "name": "base",
             "displayName": "x64 base",
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build",
-            "architecture": {
-                "value": "x64",
-                "strategy": "external"
-            },
+            "architecture": { "value": "x64", "strategy": "external" },
             "cacheVariables": {
                 "EXPORT_DIR": "${sourceDir}/build/cmake",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-%IF [<|ENV:KIND|> EQUALS <library>]:
-    %SWITCH [<|ENV:MODE|>]:
-        %CASE [<static>]:
+        %SWITCH [<|ENV:MODE|>]:
+            %CASE [<static>]:
                 "CMAKE_ARCHIVE_OUTPUT_DIRECTORY": "${sourceDir}/build/${presetName}",
-        %END
-        %CASE [<shared>]:
+            %END
+            %CASE [<shared>]:
                 "CMAKE_LIBRARY_OUTPUT_DIRECTORY": "${sourceDir}/build/${presetName}",
-        %END
-    %END
-%ELSE:
+            %END
+            %DEFAULT:
                 "CMAKE_RUNTIME_OUTPUT_DIRECTORY": "${sourceDir}/build/${presetName}",
-%END
-%SWITCH [<|ENV:LANGUAGE|>]:
-    %CASE [<c++>]:
+            %END
+        %END
+        %SWITCH [<|ENV:LANGUAGE|>]:
+            %CASE [<c++>]:
                 "!PROJECT!_CompilerOptions": "-Werror;-Wall;-Wextra;-Wshadow;-Wnon-virtual-dtor;-Wold-style-cast;-Wcast-align;-Wunused;-Woverloaded-virtual;-Wpedantic;-Wconversion;-Wsign-conversion;-Wnull-dereference;-Wdouble-promotion;-Wimplicit-fallthrough"
-    %END
-    %CASE [<c>]:
+            %END
+            %CASE [<c>]:
                 "!PROJECT!_CompilerOptions": "-Werror;-Wall;-Wextra;-Wshadow;-Wcast-align;-Wunused;-Wpedantic;-Wconversion;-Wsign-conversion;-Wnull-dereference;-Wdouble-promotion;-Wimplicit-fallthrough"
-    %END
-%END
+            %END
+        %END
             }
         },
         {
@@ -46,12 +38,12 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "ENABLE_CLANGTIDY": true,
-%IF [<|ENV:FEATURES|> CONTAINS <testable>]:
+            %IF [<|ENV:FEATURES|> CONTAINS <testable>]:
                 "ENABLE_CPPCHECK": true,
                 "ENABLE_TESTING": true
-%ELSE:
+            %ELSE:
                 "ENABLE_CPPCHECK": true
-%END
+            %END
             }
         },
         {
