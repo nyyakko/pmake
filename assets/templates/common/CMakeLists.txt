@@ -9,7 +9,6 @@ cmake_minimum_required(VERSION 3.25)
     %END
 %END
 
-include(cmake/static_analyzers.cmake)
 include(cmake/get_cpm.cmake)
 %IF [<|ENV:FEATURES|> CONTAINS <testable>]:
 include(cmake/enable_tests.cmake)
@@ -36,6 +35,8 @@ endif()
 #     GITHUB_REPOSITORY repo/package2
 #     GIT_TAG REF
 # )
+
+include(cmake/static_analyzers.cmake)
 
 # set(!PROJECT!_ExternalLibraries package1 package2 ...)
 
