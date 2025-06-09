@@ -2,11 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 
 project(pmake LANGUAGES CXX)
 
-include(cmake/static_analyzers.cmake)
 include(cmake/get_cpm.cmake)
-
-set(pmake_CompilerOptions ${pmake_CompilerOptions} -Wno-gnu-statement-expression-from-macro-expansion)
-set(pmake_LinkerOptions ${pmake_LinkerOptions})
 
 CPMAddPackage("gh:Dobiasd/FunctionalPlus#v0.2.24")
 CPMAddPackage("gh:fmtlib/fmt#10.2.1")
@@ -32,6 +28,11 @@ CPMFindPackage(
     GIT_TAG master
     OPTIONS "ENABLE_CLANGTIDY OFF" "ENABLE_CPPCHECK OFF"
 )
+
+include(cmake/static_analyzers.cmake)
+
+set(pmake_CompilerOptions ${pmake_CompilerOptions} -Wno-gnu-statement-expression-from-macro-expansion)
+# set(pmake_LinkerOptions ${pmake_LinkerOptions})
 
 set(pmake_ExternalLibraries
     cxxopts

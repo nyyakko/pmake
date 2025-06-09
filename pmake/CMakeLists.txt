@@ -10,9 +10,9 @@ target_compile_definitions(
         PREFIX_INFO="[${PROJECT_NAME}::Runtime/info]"
 )
 
-if (ENABLE_CLANGTIDY)
-    enable_clang_tidy(${PROJECT_NAME})
-endif()
+# if (ENABLE_CLANGTIDY)
+#     enable_clang_tidy(${PROJECT_NAME})
+# endif()
 
 if (ENABLE_CPPCHECK)
     enable_cppcheck(${PROJECT_NAME})
