@@ -10,17 +10,8 @@ cmake_minimum_required(VERSION 3.25)
 %END
 
 include(cmake/get_cpm.cmake)
-%IF [<|ENV:FEATURES|> CONTAINS <testable>]:
-include(cmake/enable_tests.cmake)
-%END
 %IF [[<|ENV:FEATURES|> CONTAINS <installable>] OR [<|ENV:KIND|> EQUALS <library>]]:
 include(GNUInstallDirs)
-%END
-
-%IF [<|ENV:FEATURES|> CONTAINS <testable>]:
-if (ENABLE_TESTING)
-    enable_tests(${PROJECT_NAME})
-endif()
 %END
 
 # set(!PROJECT!_CompilerOptions ${!PROJECT!_CompilerOptions})
@@ -37,6 +28,15 @@ endif()
 # )
 
 include(cmake/static_analyzers.cmake)
+%IF [<|ENV:FEATURES|> CONTAINS <testable>]:
+include(cmake/enable_tests.cmake)
+%END
+
+%IF [<|ENV:FEATURES|> CONTAINS <testable>]:
+if (ENABLE_TESTING)
+    enable_tests(${PROJECT_NAME})
+endif()
+%END
 
 # set(!PROJECT!_ExternalLibraries package1 package2 ...)
 
