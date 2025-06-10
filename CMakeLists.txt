@@ -4,30 +4,13 @@ project(pmake LANGUAGES CXX)
 
 include(cmake/get_cpm.cmake)
 
-CPMAddPackage("gh:Dobiasd/FunctionalPlus#v0.2.24")
-CPMAddPackage("gh:fmtlib/fmt#10.2.1")
-CPMAddPackage("gh:jarro2783/cxxopts@3.0.0")
-CPMAddPackage("gh:nlohmann/json@3.11.3")
-
-CPMFindPackage(
-    NAME expected
-    GITHUB_REPOSITORY nyyakko/expected
-    GIT_TAG master
-)
-
-CPMFindPackage(
-    NAME LibError
-    GITHUB_REPOSITORY nyyakko/LibError
-    GIT_TAG master
-    OPTIONS "ENABLE_CLANGTIDY OFF" "ENABLE_CPPCHECK OFF"
-)
-
-CPMFindPackage(
-    NAME LibPreprocessor
-    GITHUB_REPOSITORY nyyakko/LibPreprocessor
-    GIT_TAG master
-    OPTIONS "ENABLE_CLANGTIDY OFF" "ENABLE_CPPCHECK OFF"
-)
+CPMAddPackage(URI "gh:Dobiasd/FunctionalPlus#v0.2.24" EXCLUDE_FROM_ALL YES)
+CPMAddPackage(URI "gh:fmtlib/fmt#10.2.1"              EXCLUDE_FROM_ALL YES)
+CPMAddPackage(URI "gh:jarro2783/cxxopts@3.0.0"        EXCLUDE_FROM_ALL YES)
+CPMAddPackage(URI "gh:nlohmann/json@3.11.3"           EXCLUDE_FROM_ALL YES)
+CPMAddPackage(URI "gh:nyyakko/expected#master"        EXCLUDE_FROM_ALL YES)
+CPMAddPackage(URI "gh:nyyakko/LibError#master"        EXCLUDE_FROM_ALL YES)
+CPMAddPackage(URI "gh:nyyakko/LibPreprocessor#master" EXCLUDE_FROM_ALL YES)
 
 include(cmake/static_analyzers.cmake)
 
