@@ -218,39 +218,42 @@ liberror::Result<void> create_project(ProjectSettings const& project)
     return {};
 }
 
+liberror::Result<void> safe_main(std::span<char const*> const& arguments)
+{
+    cxxopts::Options options("pmake", "Utility for creating C and C++ projects based on pre-defined templates.");
+
+    options.add_options()("h,help", "");
+    options.add_options()("n,name", "", cxxopts::value<std::string>());
+    options.add_options()("l,language", "", cxxopts::value<std::string>()->default_value("c++"));
+    options.add_options()("s,standard", "", cxxopts::value<std::string>()->default_value("latest"));
+    options.add_options()("k,kind", "", cxxopts::value<std::string>()->default_value("executable"));
+    options.add_options()("m,mode", "", cxxopts::value<std::string>()->default_value("console"));
+    options.add_options()("features", "", cxxopts::value<std::vector<std::string>>());
+
+    auto parsedArguments = options.parse(static_cast<int>(arguments.size()), arguments.data());
+
+    if (parsedArguments.count("help") || parsedArguments.arguments().empty())
+    {
+        fmt::print("{}", options.help());
+        return {};
+    }
+
+    auto const configurationPath = APPLICATION_RESOURCES_FOLDER / "pmake-info.json";
+    auto const parsedConfiguration = nlohmann::json::parse(std::ifstream(configurationPath), nullptr, false);
+    if (parsedConfiguration.is_discarded())
+    {
+        return liberror::make_error("Couldn't open {}.", configurationPath.string());
+    }
+
+    auto project = setup_project({ parsedArguments, parsedConfiguration });
+    TRY(create_project(project));
+
+    return {};
+}
+
 int main(int argc, char const** argv)
 {
-    auto const result = [&] () -> liberror::Result<void> {
-        cxxopts::Options options("pmake", "Utility for creating C and C++ projects based on pre-defined templates.");
-
-        options.add_options()("h,help", "");
-        options.add_options()("n,name", "", cxxopts::value<std::string>());
-        options.add_options()("l,language", "", cxxopts::value<std::string>()->default_value("c++"));
-        options.add_options()("s,standard", "", cxxopts::value<std::string>()->default_value("latest"));
-        options.add_options()("k,kind", "", cxxopts::value<std::string>()->default_value("executable"));
-        options.add_options()("m,mode", "", cxxopts::value<std::string>()->default_value("console"));
-        options.add_options()("features", "", cxxopts::value<std::vector<std::string>>());
-
-        auto parsedArguments = options.parse(argc, argv);
-
-        if (parsedArguments.count("help") || parsedArguments.arguments().empty())
-        {
-            fmt::print("{}", options.help());
-            return {};
-        }
-
-        auto const configurationPath = APPLICATION_RESOURCES_FOLDER / "pmake-info.json";
-        auto const parsedConfiguration = nlohmann::json::parse(std::ifstream(configurationPath), nullptr, false);
-        if (parsedConfiguration.is_discarded())
-        {
-            return liberror::make_error("Couldn't open {}.", configurationPath.string());
-        }
-
-        auto project = setup_project({ parsedArguments, parsedConfiguration });
-        TRY(create_project(project));
-
-        return {};
-    }();
+    auto result = safe_main(std::span<char const*>(argv, size_t(argc)));
 
     if (!result.has_value())
     {
