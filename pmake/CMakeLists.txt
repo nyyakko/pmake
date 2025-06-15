@@ -5,14 +5,14 @@ add_executable(${PROJECT_NAME} "${pmake_SourceFiles}")
 
 target_compile_definitions(
     ${PROJECT_NAME} PRIVATE
-        PREFIX_ERROR="[${PROJECT_NAME}::Runtime/error]"
-        PREFIX_WARN="[${PROJECT_NAME}::Runtime/warn]"
-        PREFIX_INFO="[${PROJECT_NAME}::Runtime/info]"
+        $<$<CONFIG:Debug>:DEBUG>
+        HOME="${PROJECT_SOURCE_DIR}"
+        NAME="${PROJECT_NAME}"
 )
 
-# if (ENABLE_CLANGTIDY)
-#     enable_clang_tidy(${PROJECT_NAME})
-# endif()
+if (ENABLE_CLANGTIDY)
+    enable_clang_tidy(${PROJECT_NAME})
+endif()
 
 if (ENABLE_CPPCHECK)
     enable_cppcheck(${PROJECT_NAME})
@@ -23,7 +23,6 @@ target_include_directories(${PROJECT_NAME}
     PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/pmake"
 )
 
-
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_23)
 
 install(TARGETS     ${PROJECT_NAME}
@@ -32,8 +31,12 @@ install(TARGETS     ${PROJECT_NAME}
         DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-install(DIRECTORY   ${CMAKE_SOURCE_DIR}/assets/templates/
-        DESTINATION bin/assets/templates
+install(DIRECTORY   ${CMAKE_SOURCE_DIR}/resources/templates
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}
+)
+
+install(FILES       ${CMAKE_SOURCE_DIR}/resources/pmake-info.json
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}
 )
 
 target_link_options(${PROJECT_NAME} PRIVATE ${pmake_LinkerOptions})

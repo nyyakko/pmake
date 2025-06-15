@@ -13,6 +13,7 @@ CPMAddPackage(URI "gh:nyyakko/LibError#master"        EXCLUDE_FROM_ALL YES)
 CPMAddPackage(URI "gh:nyyakko/LibPreprocessor#master" EXCLUDE_FROM_ALL YES)
 
 include(cmake/static_analyzers.cmake)
+include(GNUInstallDirs)
 
 set(pmake_CompilerOptions ${pmake_CompilerOptions} -Wno-gnu-statement-expression-from-macro-expansion)
 # set(pmake_LinkerOptions ${pmake_LinkerOptions})
