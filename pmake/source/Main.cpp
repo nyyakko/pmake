@@ -12,7 +12,7 @@
 #define APPLICATION_FEATURES_FOLDER  APPLICATION_TEMPLATES_FOLDER / "features"
 #define APPLICATION_COMMON_FOLDER    APPLICATION_TEMPLATES_FOLDER / "common"
 
-liberror::Result<void> copy(std::filesystem::path const& source, std::filesystem::path const& destination)
+bool copy(std::filesystem::path const& source, std::filesystem::path const& destination)
 {
     try
     {
@@ -20,10 +20,10 @@ liberror::Result<void> copy(std::filesystem::path const& source, std::filesystem
     }
     catch (std::filesystem::filesystem_error const& error)
     {
-        return liberror::make_error("{}", error.what());
+        return false;
     }
 
-    return {};
+    return true;
 }
 
 std::string replace(std::string content, std::pair<std::string, std::string> const& wildcard)
@@ -90,117 +90,63 @@ struct ProjectSettings
     std::unordered_map<std::string, std::string> wildcards;
 };
 
-struct Context
+liberror::Result<void> sanitize_project(nlohmann::json const& configuration, ProjectSettings const& project)
 {
-    cxxopts::ParseResult const& arguments;
-    nlohmann::json const& configuration;
-};
-
-liberror::Result<void> sanitize_project_settings(Context const& context, ProjectSettings const& project)
-{
-    auto language = context.arguments["language"].as<std::string>();
-    if (!context.configuration["languages"].contains(language))
+    if (!configuration["languages"].contains(project.language))
     {
-        return liberror::make_error("Language \"{}\" is not available.", language);
+        return liberror::make_error("Language \"{}\" is not available.", project.language);
     }
 
-    auto standard = context.arguments["standard"].as<std::string>();
-    if (!fplus::is_elem_of(standard, context.configuration["languages"][project.language]["standards"]))
+    if (!fplus::is_elem_of(project.standard, configuration["languages"][project.language]["standards"]))
     {
-        return liberror::make_error("Standard \"{}\" is not available for {}.", standard, project.language);
+        return liberror::make_error("Standard \"{}\" is not available for {}.", project.standard, project.language);
     }
 
-    auto kind = context.arguments["kind"].as<std::string>();
-    if (!context.configuration["languages"][project.language]["templates"].contains(kind))
+    if (!configuration["languages"][project.language]["templates"].contains(project.kind))
     {
-        return liberror::make_error("Kind \"{}\" is not available for {}.", kind, project.language);
+        return liberror::make_error("Kind \"{}\" is not available for {}.", project.kind, project.language);
     }
 
-    auto mode = context.arguments["mode"].as<std::string>();
-    if (!context.configuration["languages"][project.language]["templates"][project.kind]["modes"].contains(mode))
+    if (!configuration["languages"][project.language]["templates"][project.kind]["modes"].contains(project.mode))
     {
-        return liberror::make_error("Template kind \"{}\" in mode \"{}\" is not available for {}.", project.kind, mode, project.language);
+        return liberror::make_error("Template kind \"{}\" in mode \"{}\" is not available for {}.", project.kind, project.mode, project.language);
     }
 
     return {};
 }
 
-ProjectSettings setup_project(Context const& context)
+liberror::Result<ProjectSettings> configure_project(cxxopts::ParseResult const& arguments, nlohmann::json const& configuration)
 {
-    ProjectSettings project {};
-
     using namespace std::literals;
 
-    auto fnParameterOrDefault = [&context] <class T> (std::string_view parameter, T&& defaultValue) {
-        return context.arguments.count(parameter.data()) ? context.arguments[parameter.data()].as<std::decay_t<T>>() : std::forward<T>(defaultValue);
+    ProjectSettings project {};
+
+    auto fnParameterOrDefault = [&] <class T> (std::string_view parameter, T&& defaultValue) {
+        return arguments.count(parameter.data()) ? arguments[parameter.data()].as<std::decay_t<T>>() : std::forward<T>(defaultValue);
     };
 
     project.name = fnParameterOrDefault("name", "myproject"s);
     project.language = fnParameterOrDefault("language", "c++"s);
-    project.standard = fnParameterOrDefault("standard", "23"s);
-    project.kind = fnParameterOrDefault("kind", "executable"s);
-    project.mode = fnParameterOrDefault("mode", "console"s);
-    project.features = fnParameterOrDefault("features", std::vector<std::string>{});
+    project.standard = fnParameterOrDefault("standard", configuration["languages"][project.language]["standards"][0].get<std::string>());
+    project.kind = fnParameterOrDefault("kind", configuration["languages"][project.language]["templates"].begin().key());
+    project.mode = fnParameterOrDefault("mode", configuration["languages"][project.language]["templates"][project.kind]["modes"].begin().key());
+    project.features = fnParameterOrDefault("features", configuration["languages"][project.language]["templates"][project.kind]["modes"][project.mode]["features"]["required"].get<std::vector<std::string>>());
     project.wildcards = {
-        { context.configuration["wildcards"]["name"], project.name },
-        { context.configuration["wildcards"]["language"], project.language },
-        { context.configuration["wildcards"]["standard"], project.standard },
+        { configuration["wildcards"]["name"], project.name },
+        { configuration["wildcards"]["language"], project.language },
+        { configuration["wildcards"]["standard"], project.standard },
     };
+
+    TRY(sanitize_project(configuration, project));
 
     return project;
 }
 
-liberror::Result<void> install_project_features(ProjectSettings const& project)
-{
-    for (auto const& feature : project.features)
-    {
-        if (std::filesystem::is_directory(APPLICATION_FEATURES_FOLDER / feature))
-        {
-            TRY(::copy(APPLICATION_FEATURES_FOLDER / feature, project.name));
-        }
-        else
-        {
-            fmt::println("Feature \"{}\" is unavailable.", feature);
-        }
-    }
-
-    return {};
-}
-
-liberror::Result<void> preprocess_project_files(std::filesystem::path const& path, libpreprocessor::PreprocessorContext const& context)
-{
-    auto fnFilterRegularFile = std::views::filter([](auto&& entry) {
-        return std::filesystem::is_regular_file(entry);
-    });
-
-    for (auto const& entry : std::filesystem::recursive_directory_iterator(path) | fnFilterRegularFile)
-    {
-        auto const content = TRY(process(entry.path(), context));
-        std::ofstream outputStream(entry.path());
-        outputStream << content;
-    }
-
-    return {};
-}
-
-liberror::Result<void> create_project(ProjectSettings const& project)
+liberror::Result<void> preprocess_project(ProjectSettings const& project)
 {
     using namespace std::literals;
 
-    if (std::filesystem::exists(project.name))
-    {
-        return liberror::make_error("Directory \"{}\" already exists.", project.name);
-    }
-
-    TRY(::copy(APPLICATION_COMMON_FOLDER, project.name));
-
-    if (!project.features.empty())
-    {
-        TRY(install_project_features(project));
-    }
-
-    libpreprocessor::PreprocessorContext context
-    {
+    libpreprocessor::PreprocessorContext context {
         .environmentVariables = {
             { "ENV:LANGUAGE", project.language },
             { "ENV:STANDARD", project.standard },
@@ -210,7 +156,39 @@ liberror::Result<void> create_project(ProjectSettings const& project)
         }
     };
 
-    TRY(preprocess_project_files(project.name, context));
+    auto fnFilterRegularFile = std::views::filter([](auto&& entry) { return std::filesystem::is_regular_file(entry); });
+    for (auto const& entry : std::filesystem::recursive_directory_iterator(project.name) | fnFilterRegularFile)
+    {
+        auto const content = TRY(libpreprocessor::process(entry.path(), context));
+        std::ofstream outputStream(entry.path());
+        outputStream << content;
+    }
+
+    return {};
+}
+
+liberror::Result<void> create_project(ProjectSettings const& project)
+{
+    if (std::filesystem::exists(project.name))
+    {
+        return liberror::make_error("Directory \"{}\" already exists.", project.name);
+    }
+
+    ::copy(APPLICATION_COMMON_FOLDER, project.name);
+
+    for (auto const& feature : project.features)
+    {
+        if (std::filesystem::is_directory(APPLICATION_FEATURES_FOLDER / feature))
+        {
+            ::copy(APPLICATION_FEATURES_FOLDER / feature, project.name);
+        }
+        else
+        {
+            fmt::println("Feature \"{}\" is unavailable.", feature);
+        }
+    }
+
+    TRY(preprocess_project(project));
 
     replace_file_name_wildcards(project.name, project.wildcards);
     replace_file_wildcards(project.name, project.wildcards);
@@ -222,15 +200,24 @@ liberror::Result<void> safe_main(std::span<char const*> const& arguments)
 {
     cxxopts::Options options("pmake", "Utility for creating C and C++ projects based on pre-defined templates.");
 
-    options.add_options()("h,help", "");
+    options.add_options()("h,help", "", cxxopts::value<std::string>());
     options.add_options()("n,name", "", cxxopts::value<std::string>());
-    options.add_options()("l,language", "", cxxopts::value<std::string>()->default_value("c++"));
-    options.add_options()("s,standard", "", cxxopts::value<std::string>()->default_value("latest"));
-    options.add_options()("k,kind", "", cxxopts::value<std::string>()->default_value("executable"));
-    options.add_options()("m,mode", "", cxxopts::value<std::string>()->default_value("console"));
+    options.add_options()("l,language", "", cxxopts::value<std::string>());
+    options.add_options()("s,standard", "", cxxopts::value<std::string>());
+    options.add_options()("k,kind", "", cxxopts::value<std::string>());
+    options.add_options()("m,mode", "", cxxopts::value<std::string>());
     options.add_options()("features", "", cxxopts::value<std::vector<std::string>>());
 
-    auto parsedArguments = options.parse(static_cast<int>(arguments.size()), arguments.data());
+    cxxopts::ParseResult parsedArguments {};
+
+    try
+    {
+        parsedArguments = options.parse(static_cast<int>(arguments.size()), arguments.data());
+    }
+    catch(std::exception const& exception)
+    {
+        return liberror::make_error(exception.what());
+    }
 
     if (parsedArguments.count("help") || parsedArguments.arguments().empty())
     {
@@ -238,14 +225,14 @@ liberror::Result<void> safe_main(std::span<char const*> const& arguments)
         return {};
     }
 
-    auto const configurationPath = APPLICATION_RESOURCES_FOLDER / "pmake-info.json";
-    auto const parsedConfiguration = nlohmann::json::parse(std::ifstream(configurationPath), nullptr, false);
+    auto configurationPath = APPLICATION_RESOURCES_FOLDER / "pmake-info.json";
+    auto parsedConfiguration = nlohmann::json::parse(std::ifstream(configurationPath), nullptr, false);
     if (parsedConfiguration.is_discarded())
     {
         return liberror::make_error("Couldn't open {}.", configurationPath.string());
     }
 
-    auto project = setup_project({ parsedArguments, parsedConfiguration });
+    auto project = TRY(configure_project(parsedArguments, parsedConfiguration));
     TRY(create_project(project));
 
     return {};

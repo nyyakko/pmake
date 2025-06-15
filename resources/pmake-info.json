@@ -10,14 +10,34 @@
             "templates": {
                 "executable": {
                     "modes": {
-                        "console": { "features": ["testable", "installable"] }
+                        "console": {
+                            "features": {
+                                "required": [],
+                                "optional": ["installable"]
+                            }
+                        }
                     }
                 },
                 "library": {
                     "modes": {
-                        "static": { "features": ["testable", "installable"] },
-                        "shared": { "features": ["testable", "installable"] },
-                        "header-only": { "features": ["testable", "installable"] }
+                        "static": {
+                            "features": {
+                                "required": ["installable"],
+                                "optional": ["testable"]
+                            }
+                        },
+                        "shared": {
+                            "features": {
+                                "required": ["installable"],
+                                "optional": ["testable"]
+                            }
+                        },
+                        "header-only": {
+                            "features": {
+                                "required": ["installable"],
+                                "optional": ["testable"]
+                            }
+                        }
                     }
                 }
             }
@@ -27,14 +47,34 @@
             "templates": {
                 "executable": {
                     "modes": {
-                        "console": { "features": ["testable", "installable"] }
+                        "console": {
+                            "features": {
+                                "required": [],
+                                "optional": ["installable"]
+                            }
+                        }
                     }
                 },
                 "library": {
                     "modes": {
-                        "static": { "features": ["testable", "installable"] },
-                        "shared": { "features": ["testable", "installable"] },
-                        "header-only": { "features": ["testable", "installable"] }
+                        "static": {
+                            "features": {
+                                "required": ["installable"],
+                                "optional": ["testable"]
+                            }
+                        },
+                        "shared": {
+                            "features": {
+                                "required": ["installable"],
+                                "optional": ["testable"]
+                            }
+                        },
+                        "header-only": {
+                            "features": {
+                                "required": ["installable"],
+                                "optional": ["testable"]
+                            }
+                        }
                     }
                 }
             }
