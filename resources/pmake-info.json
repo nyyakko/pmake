@@ -15,6 +15,12 @@
                                 "required": [],
                                 "optional": ["installable"]
                             }
+                        },
+                        "imgui": {
+                            "features": {
+                                "required": ["imgui"],
+                                "optional": ["installable"]
+                            }
                         }
                     }
                 },

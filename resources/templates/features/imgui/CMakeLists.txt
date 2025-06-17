@@ -11,6 +11,9 @@ cmake_minimum_required(VERSION 3.25)
 
 include(cmake/get_cpm.cmake)
 
+find_package(OpenGL REQUIRED)
+find_package(glfw3 REQUIRED)
+
 # Downloads source from remote directly
 # CPMAddPackage("gh:repo/package1#REF")
 
@@ -20,6 +23,10 @@ include(cmake/get_cpm.cmake)
 #     GITHUB_REPOSITORY repo/package2
 #     GIT_TAG REF
 # )
+
+CPMAddPackage(URI "gh:nyyakko/expected#master" EXCLUDE_FROM_ALL YES)
+CPMAddPackage(URI "gh:nyyakko/imgui#master"    EXCLUDE_FROM_ALL YES)
+CPMAddPackage(URI "gh:nyyakko/LibError#master" EXCLUDE_FROM_ALL YES)
 
 include(cmake/static_analyzers.cmake)
 %IF [[<|ENV:FEATURES|> CONTAINS <installable>] OR [<|ENV:KIND|> EQUALS <library>]]:
@@ -38,7 +45,12 @@ endif()
 # set(!PROJECT!_CompilerOptions ${!PROJECT!_CompilerOptions})
 # set(!PROJECT!_LinkerOptions ${!PROJECT!_LinkerOptions})
 
-# set(!PROJECT!_ExternalLibraries package1 package2 ...)
+set(!PROJECT!_ExternalLibraries
+    OpenGL::GL
+    glfw
+    imgui::imgui
+    LibError::LibError
+)
 
 add_subdirectory(!PROJECT!)
 
