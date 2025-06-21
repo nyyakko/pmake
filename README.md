@@ -1,3 +1,7 @@
+# this project is abandoned
+
+this project is abandoned. you should use its sucessor, [cmaker](https://github.com/nyyakko/cmaker), instead.
+
 # pmake
 
 make c++ projects from templates.
